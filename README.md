@@ -108,7 +108,7 @@ Install the simulator extra and run its example with the project interpreter:
 .\.venv\Scripts\python.exe examples\run_simulated_handover.py
 ```
 
-On Windows, the current [PyPI PyBullet 3.2.7 distribution](https://pypi.org/project/pybullet/#files) resolves to a source build and requires Microsoft C++ Build Tools. The checked project environment does not include that toolchain, and WSL2 is not installed. The [GitHub Actions Linux run](https://github.com/reneeshalomr/NeuroSync/actions/runs/44159751019) on Python 3.11 succeeded: it installed the declared `sim` extra, passed the test and quality suite, and ran the simulation example with PyBullet installed. This verifies an actual PyBullet DIRECT engine smoke path on Linux, not on native Windows. The agents are scripted dynamic proxies under a simple PD controller; the example does not validate robot arms, human motion, or real-world interaction.
+On Windows, the current [PyPI PyBullet 3.2.7 distribution](https://pypi.org/project/pybullet/#files) resolves to a source build and requires Microsoft C++ Build Tools. The checked project environment does not include that toolchain, and WSL2 is not installed. The [GitHub Actions Linux run](https://github.com/reneeshalomr/NeuroSync/actions/runs/44161231064) on Python 3.11 succeeded: it installed the declared `sim` extra, passed the test and quality suite, and ran the simulation example and real-engine movement assertion. This verifies the dynamic PyBullet DIRECT path on Linux, not on native Windows. The agents are scripted dynamic proxies under a simple PD controller; the example does not validate robot arms, human motion, or real-world interaction.
 
 ## NeuroSync 2.0 interactive research dashboard
 
