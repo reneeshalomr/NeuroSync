@@ -1,8 +1,8 @@
 """Headless PyBullet scripted handover task and synthetic telemetry.
 
-The two kinematic proxies follow authored trajectories while a PyBullet DIRECT
-world advances at a fixed step. Events are ground truth from this schedule,
-not observations or annotations of human behavior.
+Two dynamic proxy spheres track authored trajectories under a bounded PD
+controller while a PyBullet DIRECT world advances at a fixed step. Events are
+ground truth from this schedule, not observations or annotations of behavior.
 """
 
 from __future__ import annotations
@@ -133,8 +133,10 @@ def run_collaborative_task(
 ) -> CollaborativeTaskResult:
     """Run a headless PyBullet shared-workspace handover with scripted agents.
 
-    The proxies are kinematic spheres: trajectories are authored, not produced
-    by a learned controller, human motion capture, or biomechanical model.
+    The proxies are dynamic spheres moved by a scripted PD controller.
+    Reference trajectories are authored, not produced by a learned controller,
+    human motion capture, or biomechanical model. Sampled positions and
+    velocities are read from PyBullet after each physics step.
     Simulation state names are scheduled ground truth for software evaluation.
     """
     dt = 1.0 / config.sampling_frequency_hz
@@ -174,7 +176,7 @@ def run_collaborative_task(
             bullet.GEOM_BOX, halfExtents=[1.0, 0.6, 0.025], physicsClientId=client_id
         )
         bullet.createMultiBody(
-            baseMass=0,
+            baseMass=0.25,
             baseCollisionShapeIndex=plane_shape,
             basePosition=[0.0, 0.0, 0.55],
             physicsClientId=client_id,
@@ -186,7 +188,7 @@ def run_collaborative_task(
             bullet.GEOM_SPHERE, radius=0.055, physicsClientId=client_id
         )
         body_a = bullet.createMultiBody(
-            baseMass=0,
+            baseMass=0.25,
             baseCollisionShapeIndex=sphere_shape_a,
             basePosition=[-0.65, 0.0, 0.72],
             physicsClientId=client_id,
@@ -197,7 +199,12 @@ def run_collaborative_task(
             basePosition=[0.65, 0.0, 0.72],
             physicsClientId=client_id,
         )
-        for sample_index, time_s in enumerate(times):
+        velocity_a = np.zeros_like(positions_a)
+        velocity_b = np.zeros_like(positions_b)
+        positions_a[0] = [-0.65, 0.0, 0.72]
+        positions_b[0] = [0.65, 0.0, 0.72]
+        kp, kd, max_force_n = 36.0, 12.0, 8.0
+        for sample_index, time_s in enumerate(times[1:], start=1):
             phase_index = min(
                 int(np.searchsorted(phase_ends, time_s, side="right")),
                 len(config.phases) - 1,
@@ -218,20 +225,39 @@ def run_collaborative_task(
                 progress_b = np.array([local_progress])
             pos_a, pos_b = _trajectory(phase_name, progress_a, progress_b)
             pos_a, pos_b = pos_a[0], pos_b[0]
-            positions_a[sample_index] = pos_a
-            positions_b[sample_index] = pos_b
-            bullet.resetBasePositionAndOrientation(
-                body_a, pos_a.tolist(), [0.0, 0.0, 0.0, 1.0], physicsClientId=client_id
-            )
-            bullet.resetBasePositionAndOrientation(
-                body_b, pos_b.tolist(), [0.0, 0.0, 0.0, 1.0], physicsClientId=client_id
-            )
+            for body, target in ((body_a, pos_a), (body_b, pos_b)):
+                current, _ = bullet.getBasePositionAndOrientation(
+                    body, physicsClientId=client_id
+                )
+                velocity, _ = bullet.getBaseVelocity(body, physicsClientId=client_id)
+                force = 0.25 * (
+                    kp * (target - np.asarray(current)) - kd * np.asarray(velocity)
+                )
+                norm = float(np.linalg.norm(force))
+                if norm > max_force_n:
+                    force *= max_force_n / norm
+                bullet.applyExternalForce(
+                    body,
+                    -1,
+                    force.tolist(),
+                    current,
+                    bullet.WORLD_FRAME,
+                    physicsClientId=client_id,
+                )
             bullet.stepSimulation(physicsClientId=client_id)
+            for body, positions, velocities in (
+                (body_a, positions_a, velocity_a),
+                (body_b, positions_b, velocity_b),
+            ):
+                position, _ = bullet.getBasePositionAndOrientation(
+                    body, physicsClientId=client_id
+                )
+                velocity, _ = bullet.getBaseVelocity(body, physicsClientId=client_id)
+                positions[sample_index] = position
+                velocities[sample_index] = velocity
     finally:
         bullet.disconnect(physicsClientId=client_id)
 
-    velocity_a = np.gradient(positions_a, dt, axis=0)
-    velocity_b = np.gradient(positions_b, dt, axis=0)
     speed_a = np.linalg.norm(velocity_a, axis=1)
     speed_b = np.linalg.norm(velocity_b, axis=1)
     distance = np.linalg.norm(positions_a - positions_b, axis=1)
@@ -262,13 +288,20 @@ def run_collaborative_task(
         },
         metadata={
             "data_source": "simulated",
-            "scientific_status": "scripted PyBullet kinematic proxy task; not human behavior or a validated robot system",
+            "scientific_status": "scripted PyBullet dynamic proxy task with PD trajectory tracking; not human behavior or a validated robot system",
             "task_name": "shared_workspace_handover",
             "engine": "PyBullet DIRECT",
             "pybullet_version": getattr(bullet, "__version__", "3.2.7"),
             "scipy_version": scipy.__version__,
             "seed": config.seed,
-            "seed_role": "run identifier; current authored trajectories are deterministic and do not draw random values",
+            "seed_role": "run identifier; authored trajectories and controller are deterministic",
+            "controller": {
+                "type": "bounded proportional-derivative force controller",
+                "kp_per_s2": kp,
+                "kd_per_s": kd,
+                "maximum_force_n": max_force_n,
+                "body_mass_kg": 0.25,
+            },
             "sampling_frequency_hz": config.sampling_frequency_hz,
             "time_step_seconds": dt,
             "duration_seconds": duration,
@@ -281,7 +314,7 @@ def run_collaborative_task(
             "desynchronization_delay_fraction": config.desynchronization_delay_fraction,
             "velocity_correlation_definition": "Pearson correlation of per-step speed magnitudes over the full run",
             "limitations": [
-                "Kinematic trajectories are scripted and do not represent human motion.",
+                "Reference trajectories are scripted; dynamic proxy bodies do not represent human or robot biomechanics.",
                 "Task states are authored ground truth, not inferred collaboration quality.",
                 "This environment is a software fixture, not a safety or deployment evaluation.",
             ],

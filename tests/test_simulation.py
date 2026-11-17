@@ -19,9 +19,13 @@ class _FakeBullet:
     DIRECT = 0
     GEOM_BOX = 1
     GEOM_SPHERE = 2
+    WORLD_FRAME = 0
 
     def __init__(self) -> None:
         self.next_id = 0
+        self.bodies = {}
+        self.gravity = np.zeros(3)
+        self.dt = 0.05
 
     def connect(self, mode):
         return 1
@@ -30,10 +34,10 @@ class _FakeBullet:
         pass
 
     def setGravity(self, *args, **kwargs):
-        pass
+        self.gravity = np.asarray(args[:3], dtype=float)
 
     def setTimeStep(self, *args, **kwargs):
-        pass
+        self.dt = float(args[0])
 
     def createCollisionShape(self, *args, **kwargs):
         self.next_id += 1
@@ -41,13 +45,30 @@ class _FakeBullet:
 
     def createMultiBody(self, *args, **kwargs):
         self.next_id += 1
+        self.bodies[self.next_id] = {
+            "mass": float(kwargs["baseMass"]),
+            "position": np.asarray(kwargs["basePosition"], dtype=float),
+            "velocity": np.zeros(3),
+            "force": np.zeros(3),
+        }
         return self.next_id
 
-    def resetBasePositionAndOrientation(self, *args, **kwargs):
-        pass
+    def getBasePositionAndOrientation(self, body, **kwargs):
+        return self.bodies[body]["position"].tolist(), [0.0, 0.0, 0.0, 1.0]
+
+    def getBaseVelocity(self, body, **kwargs):
+        return self.bodies[body]["velocity"].tolist(), [0.0, 0.0, 0.0]
+
+    def applyExternalForce(self, body, _link, force, _position, _frame, **kwargs):
+        self.bodies[body]["force"] += np.asarray(force)
 
     def stepSimulation(self, **kwargs):
-        pass
+        for body in self.bodies.values():
+            if body["mass"]:
+                acceleration = body["force"] / body["mass"] + self.gravity
+                body["velocity"] += acceleration * self.dt
+                body["position"] += body["velocity"] * self.dt
+            body["force"][:] = 0
 
     def disconnect(self, **kwargs):
         pass
@@ -101,7 +122,10 @@ def test_simulation_repeats_and_phase_control_changes_telemetry(fake_bullet) -> 
         phases=(("handover", "synchronized", 6.0),),
     )
     synchronized = run_collaborative_task(config)
-    assert not np.array_equal(first.agent_b_position_m, synchronized.agent_b_position_m)
+    assert [event.phase_name for event in synchronized.events] == ["handover"]
+    assert [event.phase_name for event in first.events] != [
+        event.phase_name for event in synchronized.events
+    ]
 
 
 def test_npz_roundtrip_uses_pickle_free_metadata(fake_bullet, tmp_path) -> None:
@@ -136,6 +160,13 @@ def test_actual_pybullet_smoke_when_optional_dependency_is_installed() -> None:
     result = run_collaborative_task(CollaborativeTaskConfig(sampling_frequency_hz=10))
     assert result.metadata["engine"] == "PyBullet DIRECT"
     assert result.time_seconds.size == 61
+    assert np.any(
+        np.linalg.norm(np.diff(result.agent_a_position_m, axis=0), axis=1) > 0
+    )
+    assert (
+        result.metadata["controller"]["type"]
+        == "bounded proportional-derivative force controller"
+    )
 
 
 def test_missing_optional_dependency_has_actionable_message(monkeypatch) -> None:

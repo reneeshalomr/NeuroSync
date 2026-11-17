@@ -99,7 +99,7 @@ The end-to-end demonstration runs signal generation, MNE conversion, spectral fe
 
 ## Phase 2: simulated HRC research pipeline
 
-The optional `neurosync.simulation` package provides a headless PyBullet DIRECT shared-workspace handover with scripted kinematic human/robot proxies. Its behavioral telemetry includes trajectories, per-step speed, inter-agent distance, whole-run speed Pearson correlation, idle duration, and scripted synchronized/desynchronized task-state intervals. These events are simulation ground truth from the authored phase schedule, not observations of human behavior or inferred collaboration quality. NPZ export keeps arrays numeric and provenance/events as JSON; filenames must include `simulated` and generated files remain under ignored paths.
+The optional `neurosync.simulation` package provides a headless PyBullet DIRECT shared-workspace handover with dynamic sphere proxies driven by a bounded PD force controller toward scripted reference paths. Sampled trajectories and velocities are read from the physics engine. Behavioral telemetry includes per-step speed, inter-agent distance, whole-run speed Pearson correlation, idle duration, and scripted synchronized/desynchronized task-state intervals. These events are simulation ground truth from the authored phase schedule, not observations of human behavior or inferred collaboration quality. This is a simple controlled physics task, not a robot arm, human motion model, or deployment evaluation. NPZ export keeps arrays numeric and provenance/events as JSON; filenames must include `simulated` and generated files remain under ignored paths.
 
 Install the simulator extra and run its example with the project interpreter:
 
@@ -108,7 +108,7 @@ Install the simulator extra and run its example with the project interpreter:
 .\.venv\Scripts\python.exe examples\run_simulated_handover.py
 ```
 
-On Windows, the current [PyPI PyBullet 3.2.7 distribution](https://pypi.org/project/pybullet/#files) resolves to a source build and requires Microsoft C++ Build Tools. The checked project environment does not include that toolchain, so local actual-engine smoke tests are skipped until it is available; mocked-engine contract tests still run. WSL2 is not installed here. `.github/workflows/ci.yml` now configures Python 3.11 on Ubuntu, installs the declared `sim` extra, runs the full test and quality suite, and executes the simulation example against the actual PyBullet package. This provides a Linux runtime path, but does not count as real-engine verification until a GitHub Actions run succeeds. The simulation and alignment code remain unverified end to end on an actual-engine run until then.
+On Windows, the current [PyPI PyBullet 3.2.7 distribution](https://pypi.org/project/pybullet/#files) resolves to a source build and requires Microsoft C++ Build Tools. The checked project environment does not include that toolchain, and WSL2 is not installed. The [GitHub Actions Linux run](https://github.com/reneeshalomr/NeuroSync/actions/runs/44159751019) on Python 3.11 succeeded: it installed the declared `sim` extra, passed the test and quality suite, and ran the simulation example with PyBullet installed. This verifies an actual PyBullet DIRECT engine smoke path on Linux, not on native Windows. The agents are scripted dynamic proxies under a simple PD controller; the example does not validate robot arms, human motion, or real-world interaction.
 
 ## NeuroSync 2.0 interactive research dashboard
 
