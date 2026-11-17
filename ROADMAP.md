@@ -48,6 +48,8 @@ Establish a reproducible, research-oriented foundation for studying whether phys
 
 **Exit criteria:** the notebook runs reproducibly and separates exploration from confirmatory evaluation.
 
+**Status (2026-11-17): implementation and validation complete.** Added reusable signal, spectral, and coherence plots with synthetic provenance, units, and cautious captions; an exploratory notebook with a fixed seed that executes the complete synthetic pipeline; tests for plotting contracts; and an optional Jupyter dependency group. The notebook is descriptive and performs no inferential evaluation.
+
 ## Day 6 — Baseline ML for synthetic collaboration-state classification
 
 - Define a clearly synthetic target and simple baseline models; use participant/session-aware splits where the data contract supports them.

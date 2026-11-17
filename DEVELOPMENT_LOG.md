@@ -62,3 +62,12 @@ This log records dated project decisions, implementation work, checks, and limit
 - No dependency changes. No surrogate-based null inference was implemented; results are descriptive only.
 - Validation with `.venv\\Scripts\\python.exe` (Python 3.11.9): full suite `-m pytest --basetemp .venv\\pytest-tmp` passed all 73 tests; all four examples completed; `-m compileall -q src tests examples` completed; `-m ruff check src tests examples` passed; `-m ruff format --check src tests examples` confirmed all 19 Python files formatted.
 - No generated datasets or human recordings were retained. The final change set contains only source, tests, an example, and project documentation.
+
+## 2026-11-17 — Day 5 exploratory visualization
+
+- Added reusable Matplotlib visualizations for selected participant time series (µV), channel spectral PSD and relative band summaries (V²/Hz), and matched-channel coherence. Figure titles/captions identify synthetic data and avoid interpreting statistical association as proof of interpersonal synchrony.
+- Added `notebooks/synthetic_collaboration_exploration.ipynb`, which uses a fixed seed to generate a synthetic pair, convert to MNE, extract spectral features, compute descriptive coherence, and call the reusable plotting functions. The notebook stores no outputs or datasets in Git.
+- Added tests for figure structure, provenance and unit labels, cautious coherence language, and invalid channel/participant selections.
+- Added `matplotlib>=3.8,<4` as a direct dependency and optional `jupyter>=1,<2` extra. Installed declared development/notebook extras into `.venv` using `.venv\\Scripts\\python.exe -m pip install -e ".[dev,notebook]"` to execute the notebook.
+- Validation with Python 3.11.9: full suite passed all 77 tests; all four examples completed; all five notebook code cells executed successfully using nbclient; compileall completed; Ruff check passed; Ruff format check confirmed 23 Python files formatted. The Jupyter kernel emitted Windows Proactor/TCP warnings during local execution; execution completed successfully and the notebook contains no saved outputs.
+- No generated data or real human recordings were added.

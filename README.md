@@ -69,3 +69,16 @@ The estimate depends on window length, segment overlap, preprocessing, and the n
 .\.venv\Scripts\python.exe examples\analyze_synthetic_coherence.py
 .\.venv\Scripts\python.exe -m pytest
 ```
+
+## Exploratory visualization and notebook
+
+Reusable Matplotlib functions in `neurosync.visualization` plot synthetic time series in µV, spectral PSD with V²/Hz labels, and descriptive channel coherence. Each figure labels its synthetic provenance, relevant units, and cautious interpretation. Figures are returned to callers and are not automatically saved into the repository.
+
+Install the optional Jupyter tooling with the project interpreter, then open the notebook from the repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,notebook]"
+.\.venv\Scripts\jupyter.exe notebook notebooks\synthetic_collaboration_exploration.ipynb
+```
+
+The notebook calls the reusable generator, preprocessing, feature, coherence, and plot APIs. It uses a fixed seed and retains no generated dataset. Its cells are exploratory and do not perform inferential tests or validate a human collaboration-state hypothesis.
