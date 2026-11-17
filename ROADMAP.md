@@ -30,6 +30,8 @@ Establish a reproducible, research-oriented foundation for studying whether phys
 
 **Exit criteria:** feature definitions and tests are explicit; features are not described as direct measures of emotion or intention.
 
+**Status (2026-11-17): implementation and validation complete.** Welch PSD, absolute/relative band powers, spectral entropy, channel summaries, tests, and a synthetic-only example are implemented. Values are descriptive and depend on the configured window, bands, and source preprocessing.
+
 ## Day 4 — Synchrony analysis
 
 - Add descriptive inter-signal statistics with windowing, preprocessing, and surrogate/control assumptions stated.

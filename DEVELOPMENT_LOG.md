@@ -39,3 +39,16 @@ This log records dated project decisions, implementation work, checks, and limit
 - Dependencies added to project configuration: `mne>=1.6,<2` at runtime and `ruff>=0.12,<1` in the development extra. Installed versions during this session: MNE 1.13.2, SciPy 1.17.1, Ruff 0.17.5.
 - Validation with `.venv\\Scripts\\python.exe` (Python 3.11.9): full suite `-m pytest --basetemp .venv\\pytest-tmp` passed all 49 tests; both synthetic examples completed; `-m compileall -q src tests examples` completed; `-m ruff check src tests examples` passed; `-m ruff format --check src tests examples` confirmed 11 files already formatted.
 - Environment: MNE 1.13.2, SciPy 1.17.1, NumPy 2.4.6, pytest 8.4.2, Ruff 0.17.5. No human recordings or generated datasets were added.
+
+## 2026-11-17 — Day 3 spectral feature extraction
+
+- Added SciPy as an explicit runtime dependency and implemented Welch PSD extraction for EEG channels from synthetic-labeled MNE recordings.
+- Added trapezoid-integrated absolute band power in V² and relative band power defined against total power over a configurable analysis range. Defaults use contiguous delta/theta/alpha/beta/gamma bands from 0.5–45 Hz.
+- Added Shannon entropy of normalized PSD-bin mass in nats and normalized to [0, 1], plus channel-level mean/population-standard-deviation summaries.
+- Excluded channels already flagged as bad in MNE metadata from the summaries and recorded those exclusions; no automatic bad-channel classifier is included.
+- Feature outputs retain Welch window, overlap, detrending, segment length, bin spacing, analysis/band limits, source condition/seed, preprocessing metadata, units, and NumPy/SciPy/MNE versions. Features reject non-synthetic provenance, empty EEG picks, invalid Nyquist support, zero-power input, and frequency resolutions too coarse for a requested band.
+- Added analytic sinusoid tests for PSD and V² power, relative-power partition, entropy calculation, channel summaries, deterministic outputs, invalid conditions, and integration with Day 2 MNE objects; added an example that analyzes unfiltered synthetic Raw data to avoid inheriting the Day 2 example's illustrative 1–40 Hz filter.
+- Scientific limitation: band power and entropy depend on sampling, windowing, analysis limits, and prior filtering. They are descriptive signal statistics and are not direct measurements of emotion, intention, collaboration state, or interpersonal synchrony.
+- Dependencies added: `scipy>=1.14,<2` runtime.
+- Validation with `.venv\\Scripts\\python.exe` (Python 3.11.9): full suite `-m pytest --basetemp .venv\\pytest-tmp` passed all 61 tests; all three examples completed; `-m compileall -q src tests examples` completed; `-m ruff check src tests examples` passed; `-m ruff format --check src tests examples` confirmed all 15 Python files formatted.
+- Environment for this run: NumPy 2.4.6, SciPy 1.17.1, MNE 1.13.2, pytest 8.4.2, Ruff 0.17.5. No generated data were retained in the repository.

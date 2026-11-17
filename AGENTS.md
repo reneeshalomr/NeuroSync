@@ -88,7 +88,7 @@ NeuroSync/
 - `preprocessing/filtering.py`: explicit filtering/reference operations, parameterized and documented with their effects and limitations.
 - `preprocessing/epochs.py`: event-locked windowing with clear boundary and baseline conventions.
 - `features/quality.py`: signal-quality summaries and checks; these are not cognitive-state labels.
-- `features/spectral.py`: defined spectral estimates/band summaries with units, windows, and edge behavior.
+- `features/spectral.py`: Welch PSD, trapezoid-integrated absolute/relative band power, Shannon entropy, and channel summaries with units, windowing, source provenance, and edge checks; excludes channels already marked bad and does not automatically diagnose channel quality.
 - `collaboration/labels.py`: future operational label definitions and annotation provenance; no labels inferred from EEG without validated protocol.
 - `collaboration/alignment.py`: future timestamp alignment of EEG, behavior, task events, and robot logs with clock assumptions exposed.
 - `modeling/baselines.py`: interpretable reference predictors and simple statistical baselines.

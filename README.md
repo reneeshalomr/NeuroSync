@@ -47,3 +47,14 @@ The Day 2 preprocessing package converts each synthetic participant to a separat
 ```
 
 Filtering is offline and can smear transients around events; these settings are not an online robot-control pipeline. The example's event indices are illustrative and are not task annotations. No montage is assigned to the generic synthetic channel names. Filter/reference choices are workflow defaults and require task- and device-specific justification for real recordings.
+
+## Spectral features
+
+`neurosync.features.spectral` computes a one-sided Welch PSD (density in V²/Hz) for each EEG channel, trapezoid-integrated absolute band power (V²), relative band power, and Shannon spectral entropy in nats plus a normalized [0, 1] value. Relative power uses the total PSD integral in the configured analysis range (default 0.5–45 Hz); the default contiguous band definitions therefore sum to approximately 1, subject to numerical integration. Spectral entropy uses normalized PSD-bin mass in that same range, not a differential-entropy estimate. Results also include channel-wise mean and population-standard-deviation summaries.
+
+The default Welch estimate uses 2-second Hann segments, 50% overlap, constant detrending, and mean averaging. Channels already marked bad in MNE metadata are excluded; this code does not automatically diagnose bad channels. The returned PSD records frequency bins; band powers depend on segment length, sample rate, preprocessing, and chosen limits. Features computed after filtering describe the filtered signal and may be attenuated near filter cutoffs. Result metadata records feature settings, excluded channel annotations, and source preprocessing. These descriptive statistics do not identify emotions, intentions, collaboration state, or interpersonal synchrony.
+
+```powershell
+.\.venv\Scripts\python.exe examples\extract_synthetic_spectral_features.py
+.\.venv\Scripts\python.exe -m pytest
+```

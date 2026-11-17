@@ -11,6 +11,7 @@ requires-python = ">=3.11,<3.12"
 dependencies = [
     "mne>=1.6,<2",
     "numpy>=1.26,<3",
+    "scipy>=1.14,<2",
 ]
 
 [project.optional-dependencies]
