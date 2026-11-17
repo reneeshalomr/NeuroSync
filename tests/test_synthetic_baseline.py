@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import json
+import runpy
+
 import numpy as np
 import pytest
 
 from neurosync.modeling.synthetic_baseline import (
     build_synthetic_condition_dataset,
     evaluate_synthetic_baselines,
+    evaluate_synthetic_baselines_cv,
 )
 
 
@@ -105,3 +109,60 @@ def test_dataset_builder_rejects_invalid_parameters(kwargs) -> None:
 def test_evaluation_rejects_too_many_folds(dataset) -> None:
     with pytest.raises(ValueError, match="number of independent seed groups"):
         evaluate_synthetic_baselines(dataset, n_splits=9)
+
+
+def test_cross_validation_assigns_each_pair_to_one_test_fold(dataset) -> None:
+    result = evaluate_synthetic_baselines_cv(dataset, random_state=21, n_splits=4)
+    flattened = [group for fold in result.fold_test_groups for group in fold]
+    assert len(flattened) == len(set(flattened)) == 8
+    assert set(flattened) == set(dataset.groups)
+    assert result.class_balance == {
+        "LOW_SHARED_COMPONENT": 8,
+        "HIGH_SHARED_COMPONENT": 8,
+    }
+    assert (
+        result.metadata["splitter"]
+        == "StratifiedGroupKFold; all out-of-fold predictions"
+    )
+    for name, prediction in result.out_of_fold_predictions.items():
+        assert prediction.shape == dataset.labels.shape
+        assert set(prediction) <= set(dataset.labels)
+        metrics = result.aggregate_metrics[name]
+        assert 0 <= metrics["accuracy"] <= 1
+        assert np.asarray(metrics["confusion_matrix"]).sum() == dataset.labels.size
+        low, high = metrics["paired_group_exact_accuracy_95pct_wilson_interval"]
+        assert 0 <= low <= high <= 1
+
+
+def test_cross_validation_is_reproducible(dataset) -> None:
+    first = evaluate_synthetic_baselines_cv(dataset, random_state=8)
+    second = evaluate_synthetic_baselines_cv(dataset, random_state=8)
+    assert first.fold_test_groups == second.fold_test_groups
+    assert first.aggregate_metrics == second.aggregate_metrics
+    for model in first.out_of_fold_predictions:
+        np.testing.assert_array_equal(
+            first.out_of_fold_predictions[model],
+            second.out_of_fold_predictions[model],
+        )
+
+
+def test_end_to_end_workflow_writes_only_report_and_figures(tmp_path) -> None:
+    workflow = runpy.run_path("examples/run_synthetic_research_workflow.py")
+    report = workflow["run_workflow"](tmp_path, n_sessions=4)
+    saved_report = json.loads((tmp_path / "synthetic_workflow_report.json").read_text())
+    assert report == saved_report
+    assert saved_report["signal_demo"]["data_source"] == "synthetic"
+    assert (
+        saved_report["synthetic_condition_evaluation"]["metadata"][
+            "not_human_collaboration_state"
+        ]
+        is True
+    )
+    assert set(saved_report["generated_figures"]) == {
+        "signals_synthetic.png",
+        "spectral_synthetic.png",
+        "coherence_synthetic.png",
+    }
+    for image_name in saved_report["generated_figures"]:
+        assert (tmp_path / image_name).is_file()
+    assert not list(tmp_path.glob("*.npz"))

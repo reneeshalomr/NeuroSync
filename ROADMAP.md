@@ -67,6 +67,8 @@ Establish a reproducible, research-oriented foundation for studying whether phys
 
 **Exit criteria:** the staged synthetic platform is reproducible and reviewable; no real participant data or robot deployment claim is implied.
 
+**Status (2026-11-17): implementation and validation complete.** Added all-fold group-disjoint out-of-fold evaluation and an end-to-end CLI demonstration that runs generation, MNE conversion, spectral extraction, coherence, visualization, and model evaluation. The script writes report/figure outputs only to ignored `outputs/`; no signal data are serialized. The final full test suite, examples, notebook, compilation, Ruff, provenance, and repository hygiene checks passed.
+
 ## After the first week
 
 1. Add behavioral/task-event streams with timestamp alignment and provenance.

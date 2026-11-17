@@ -64,6 +64,18 @@ class SyntheticBaselineEvaluation:
     metadata: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class SyntheticCrossValidationEvaluation:
+    """Out-of-fold predictions and metrics from grouped synthetic evaluation."""
+
+    class_balance: dict[str, int]
+    fold_test_groups: tuple[tuple[str, ...], ...]
+    fold_metrics: dict[str, tuple[dict[str, Any], ...]]
+    aggregate_metrics: dict[str, dict[str, Any]]
+    out_of_fold_predictions: dict[str, NDArray[np.str_]]
+    metadata: dict[str, Any]
+
+
 def build_synthetic_condition_dataset(
     n_sessions: int = 16,
     *,
@@ -339,6 +351,169 @@ def evaluate_synthetic_baselines(
             "uncertainty": "95% Wilson score interval for exact paired-group accuracy; seed groups are sampling units",
             "feature_names": list(dataset.feature_names),
             "models": list(models),
+            "limitations": "synthetic generator setting only; not evidence of human-state classification or generalization",
+            "scikit_learn_version": sklearn.__version__,
+        },
+    )
+
+
+def evaluate_synthetic_baselines_cv(
+    dataset: SyntheticConditionDataset,
+    *,
+    random_state: int = 17,
+    n_splits: int = 4,
+) -> SyntheticCrossValidationEvaluation:
+    """Evaluate baseline models with group-disjoint out-of-fold predictions.
+
+    Every paired seed group appears in exactly one test fold. The scaler is
+    refit inside each fold's training Pipeline. Aggregate metrics are computed
+    over all out-of-fold rows; the Wilson interval uses the seed group as the
+    sampling unit and counts a group as correct only when both rows are right.
+    This measures generator-setting prediction on synthetic simulations only.
+    """
+    if dataset.metadata.get("data_source") != "synthetic":
+        raise ValueError("dataset must carry synthetic provenance")
+    if dataset.features.ndim != 2 or dataset.features.shape[0] != dataset.labels.size:
+        raise ValueError("features must be 2D with one row per label")
+    if (
+        dataset.groups.shape != dataset.labels.shape
+        or not np.isfinite(dataset.features).all()
+    ):
+        raise ValueError("groups and labels must align and features must be finite")
+    if set(np.unique(dataset.labels)) != set(CLASS_ORDER):
+        raise ValueError(
+            "dataset must contain both expected generator-condition labels"
+        )
+    if isinstance(n_splits, bool) or not isinstance(n_splits, int) or n_splits < 2:
+        raise ValueError("n_splits must be an integer of at least 2")
+    unique_groups = np.unique(dataset.groups)
+    if unique_groups.size < n_splits:
+        raise ValueError("n_splits cannot exceed the number of independent seed groups")
+    splitter = StratifiedGroupKFold(
+        n_splits=n_splits,
+        shuffle=True,
+        random_state=random_state,
+    )
+    model_names = ("majority_dummy", "standardized_logistic_regression")
+    out_of_fold = {
+        name: np.full(dataset.labels.shape, "", dtype=dataset.labels.dtype)
+        for name in model_names
+    }
+    fold_metrics: dict[str, list[dict[str, Any]]] = {name: [] for name in model_names}
+    fold_test_groups: list[tuple[str, ...]] = []
+    seen_test_groups: set[str] = set()
+    for train_index, test_index in splitter.split(
+        dataset.features, dataset.labels, groups=dataset.groups
+    ):
+        train_groups = set(dataset.groups[train_index].tolist())
+        current_test_groups = set(dataset.groups[test_index].tolist())
+        if train_groups & current_test_groups:
+            raise RuntimeError(
+                "seed-pair group leakage detected in cross-validation fold"
+            )
+        if seen_test_groups & current_test_groups:
+            raise RuntimeError("a seed-pair group appeared in more than one test fold")
+        seen_test_groups |= current_test_groups
+        fold_test_groups.append(tuple(sorted(current_test_groups)))
+        y_train, y_test = dataset.labels[train_index], dataset.labels[test_index]
+        estimators = {
+            "majority_dummy": DummyClassifier(strategy="most_frequent"),
+            "standardized_logistic_regression": make_pipeline(
+                StandardScaler(),
+                LogisticRegression(max_iter=1000, random_state=random_state),
+            ),
+        }
+        for name, estimator in estimators.items():
+            estimator.fit(dataset.features[train_index], y_train)
+            prediction = estimator.predict(dataset.features[test_index])
+            out_of_fold[name][test_index] = prediction
+            fold_metrics[name].append(
+                {
+                    "accuracy": float(accuracy_score(y_test, prediction)),
+                    "balanced_accuracy": float(
+                        balanced_accuracy_score(y_test, prediction)
+                    ),
+                    "macro_f1": float(
+                        f1_score(
+                            y_test,
+                            prediction,
+                            labels=CLASS_ORDER,
+                            average="macro",
+                            zero_division=0,
+                        )
+                    ),
+                    "test_support": {
+                        label: int(np.count_nonzero(y_test == label))
+                        for label in CLASS_ORDER
+                    },
+                }
+            )
+    if seen_test_groups != set(unique_groups.tolist()):
+        raise RuntimeError(
+            "cross-validation did not produce exactly one prediction per seed group"
+        )
+    if any(np.any(prediction == "") for prediction in out_of_fold.values()):
+        raise RuntimeError(
+            "cross-validation left samples without out-of-fold predictions"
+        )
+
+    aggregate: dict[str, dict[str, Any]] = {}
+    for name, prediction in out_of_fold.items():
+        group_successes = sum(
+            bool(
+                np.all(
+                    prediction[dataset.groups == group]
+                    == dataset.labels[dataset.groups == group]
+                )
+            )
+            for group in unique_groups
+        )
+        aggregate[name] = {
+            "accuracy": float(accuracy_score(dataset.labels, prediction)),
+            "balanced_accuracy": float(
+                balanced_accuracy_score(dataset.labels, prediction)
+            ),
+            "macro_f1": float(
+                f1_score(
+                    dataset.labels,
+                    prediction,
+                    labels=CLASS_ORDER,
+                    average="macro",
+                    zero_division=0,
+                )
+            ),
+            "confusion_matrix": confusion_matrix(
+                dataset.labels, prediction, labels=CLASS_ORDER
+            ).tolist(),
+            "test_support": {
+                label: int(np.count_nonzero(dataset.labels == label))
+                for label in CLASS_ORDER
+            },
+            "paired_group_exact_accuracy": group_successes / len(unique_groups),
+            "paired_group_exact_accuracy_95pct_wilson_interval": list(
+                _wilson_interval(group_successes, len(unique_groups))
+            ),
+        }
+    return SyntheticCrossValidationEvaluation(
+        class_balance={
+            label: int(np.count_nonzero(dataset.labels == label))
+            for label in CLASS_ORDER
+        },
+        fold_test_groups=tuple(fold_test_groups),
+        fold_metrics={name: tuple(values) for name, values in fold_metrics.items()},
+        aggregate_metrics=aggregate,
+        out_of_fold_predictions=out_of_fold,
+        metadata={
+            "data_source": "synthetic",
+            "target_name": dataset.metadata["target_name"],
+            "target_definition": dataset.metadata["target_definition"],
+            "not_human_collaboration_state": True,
+            "splitter": "StratifiedGroupKFold; all out-of-fold predictions",
+            "n_splits": n_splits,
+            "split_random_state": random_state,
+            "grouping": "paired synthetic condition rows sharing one generator seed",
+            "scaler_fit_scope": "training groups within each fold only through Pipeline",
+            "uncertainty": "95% Wilson score interval for exact paired-group accuracy; seed groups are sampling units",
             "limitations": "synthetic generator setting only; not evidence of human-state classification or generalization",
             "scikit_learn_version": sklearn.__version__,
         },

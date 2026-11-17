@@ -77,11 +77,11 @@ Reusable Matplotlib functions in `neurosync.visualization` plot synthetic time s
 Install the optional Jupyter tooling with the project interpreter, then open the notebook from the repository root:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -e ".[dev,notebook]"
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,notebook,ml]"
 .\.venv\Scripts\jupyter.exe notebook notebooks\synthetic_collaboration_exploration.ipynb
 ```
 
-The notebook calls the reusable generator, preprocessing, feature, coherence, and plot APIs. It uses a fixed seed and retains no generated dataset. Its cells are exploratory and do not perform inferential tests or validate a human collaboration-state hypothesis.
+The notebook calls the reusable generator, preprocessing, feature, coherence, plot, and grouped baseline APIs. It uses fixed seeds and retains no generated dataset. Its cells are exploratory and do not perform inferential tests or validate a human collaboration-state hypothesis.
 
 ## Synthetic condition baseline
 
@@ -90,6 +90,9 @@ Install the optional ML extra and run the baseline example:
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".[dev,ml]"
 .\.venv\Scripts\python.exe examples\evaluate_synthetic_baseline.py
+.\.venv\Scripts\python.exe examples\run_synthetic_research_workflow.py
 ```
 
-The target is the generator's `HIGH_SHARED_COMPONENT` or `LOW_SHARED_COMPONENT` setting, not an annotated human collaboration state. Each seed produces a paired high/low example; both rows stay together in a `StratifiedGroupKFold` split. The workflow reports class counts, majority-class and standardized logistic regression baselines, accuracy, balanced accuracy, macro F1, confusion matrices, and a Wilson interval for the proportion of held-out seed groups where both paired rows are correct. Scaling is fit only within the training fold. The first of four deterministic folds is reported; the interval treats seed groups as the sampling unit and does not support human-population inference. No performance on this synthetic fixture supports real-world or human-state validity.
+The target is the generator's `HIGH_SHARED_COMPONENT` or `LOW_SHARED_COMPONENT` setting, not an annotated human collaboration state. Each seed produces a paired high/low example; both rows stay together in a `StratifiedGroupKFold` split. The workflow reports class counts, majority-class and standardized logistic regression baselines, accuracy, balanced accuracy, macro F1, confusion matrices, and a Wilson interval for the proportion of held-out seed groups where both paired rows are correct. Scaling is fit only within the training fold. The standalone baseline example reports the first of four deterministic folds; the integrated workflow uses all four folds for out-of-fold predictions. The interval treats seed groups as the sampling unit and does not support human-population inference. No performance on this synthetic fixture supports real-world or human-state validity.
+
+The end-to-end demonstration runs signal generation, MNE conversion, spectral features, coherence, plots, and grouped cross-validation. It saves a JSON report and three PNG figures under `outputs/synthetic_research_demo/`, which is ignored by Git; no generated signals or datasets are serialized.
