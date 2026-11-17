@@ -23,6 +23,9 @@ dev = [
 notebook = [
     "jupyter>=1,<2",
 ]
+ml = [
+    "scikit-learn>=1.4,<2",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
