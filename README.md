@@ -58,3 +58,14 @@ The default Welch estimate uses 2-second Hann segments, 50% overlap, constant de
 .\.venv\Scripts\python.exe examples\extract_synthetic_spectral_features.py
 .\.venv\Scripts\python.exe -m pytest
 ```
+
+## Cross-participant coherence
+
+`neurosync.collaboration.synchrony` computes descriptive, matched-channel magnitude-squared coherence between two MNE recordings explicitly marked synthetic. It uses SciPy's Welch estimator with a Hann window, constant detrending, configurable segment duration and overlap, and reports channel-level coherence plus arithmetic mean summaries over configured frequency bands. Only EEG channels present and not marked bad in both recordings are included. The two inputs must have matching sampling rates and sample counts. Coherence is dimensionless; input EEG is expressed in volts. Defaults use two-second segments and the same delta through gamma band limits as the spectral feature module.
+
+The estimate depends on window length, segment overlap, preprocessing, and the number of segments. Finite-sample estimates can be biased upward. This first implementation performs no surrogate/control inference, confidence interval estimation, or multiple-comparison correction; the band and across-channel summaries are descriptive. Shared injected components in synthetic signals are known construction choices, not evidence of interpersonal neural synchrony, causal coupling, or a collaboration state. The API rejects inputs without synthetic provenance.
+
+```powershell
+.\.venv\Scripts\python.exe examples\analyze_synthetic_coherence.py
+.\.venv\Scripts\python.exe -m pytest
+```

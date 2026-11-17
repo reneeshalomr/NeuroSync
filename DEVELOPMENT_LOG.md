@@ -52,3 +52,13 @@ This log records dated project decisions, implementation work, checks, and limit
 - Dependencies added: `scipy>=1.14,<2` runtime.
 - Validation with `.venv\\Scripts\\python.exe` (Python 3.11.9): full suite `-m pytest --basetemp .venv\\pytest-tmp` passed all 61 tests; all three examples completed; `-m compileall -q src tests examples` completed; `-m ruff check src tests examples` passed; `-m ruff format --check src tests examples` confirmed all 15 Python files formatted.
 - Environment for this run: NumPy 2.4.6, SciPy 1.17.1, MNE 1.13.2, pytest 8.4.2, Ruff 0.17.5. No generated data were retained in the repository.
+
+## 2026-11-17 — Day 4 descriptive synchrony analysis
+
+- Added `neurosync.collaboration.synchrony` to compute channel-matched magnitude-squared coherence with SciPy's Welch estimator for two MNE recordings carrying explicit synthetic provenance. EEG channels marked bad in either recording are excluded; equal sample rates and lengths are required.
+- Added configurable segment duration, overlap, and frequency bands; outputs include frequency-resolved coherence, per-channel band means, across-channel band means, source condition/seed, parameters, units, software version, and exclusion metadata.
+- Added tests comparing the estimator against SciPy directly, checking an exact shared sinusoid fixture, summaries, bad-channel exclusion, repeatability, provenance and shape/configuration validation, and undefined zero-power handling. These tests validate constructed software behavior only.
+- Added a runnable synthetic-only example and documented Hann windows, frequency resolution, finite-sample upward bias, lack of surrogate/control inference and multiplicity correction, and the distinction between statistical association and interpersonal synchrony.
+- No dependency changes. No surrogate-based null inference was implemented; results are descriptive only.
+- Validation with `.venv\\Scripts\\python.exe` (Python 3.11.9): full suite `-m pytest --basetemp .venv\\pytest-tmp` passed all 73 tests; all four examples completed; `-m compileall -q src tests examples` completed; `-m ruff check src tests examples` passed; `-m ruff format --check src tests examples` confirmed all 19 Python files formatted.
+- No generated datasets or human recordings were retained. The final change set contains only source, tests, an example, and project documentation.

@@ -39,6 +39,8 @@ Establish a reproducible, research-oriented foundation for studying whether phys
 
 **Exit criteria:** outputs are described as statistical association; no coherence or phase metric is called proof of interpersonal synchrony.
 
+**Status (2026-11-17): implementation and validation complete.** Added Welch magnitude-squared coherence for matched, non-bad EEG channels in synthetic MNE recordings, channel/band summaries, parameter and provenance metadata, tests against SciPy, and a runnable synthetic-only example. This milestone performs no surrogate/control inference or multiple-comparison correction and makes no human synchrony claim.
+
 ## Day 5 — Visualization and exploratory research notebook
 
 - Build reusable plots and a notebook calling package functions for synthetic signals, features, and synchrony summaries.
