@@ -1,0 +1,38 @@
+# Project virtual environment
+.venv/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test and notebook caches
+.pytest_cache/
+.ipynb_checkpoints/
+.ruff_cache/
+
+# Generated datasets and experiment outputs
+/data/generated/
+/data/processed/
+/datasets/generated/
+/outputs/
+*.tmp
+*.temp
+*.part
+*.log
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Common editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local packaging metadata
+*.egg-info/
