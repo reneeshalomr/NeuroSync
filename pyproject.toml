@@ -12,6 +12,7 @@ dependencies = [
     "mne>=1.6,<2",
     "matplotlib>=3.8,<4",
     "numpy>=1.26,<3",
+    "pandas>=2.2,<4",
     "scipy>=1.14,<2",
 ]
 
@@ -25,6 +26,9 @@ notebook = [
 ]
 ml = [
     "scikit-learn>=1.4,<2",
+]
+sim = [
+    "pybullet>=3.2.6,<4",
 ]
 
 [tool.setuptools.packages.find]

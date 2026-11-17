@@ -1,6 +1,6 @@
 # NeuroSync
 
-NeuroSync is a research-oriented project exploring whether physiological and behavioral signals can help estimate human-robot collaboration states. Initial work will focus on a reproducible pipeline using clearly labeled synthetic EEG data. Synthetic results are not human-subject evidence or clinical validation.
+NeuroSync is a research-oriented project exploring whether physiological and behavioral signals can help estimate human-robot collaboration states. Phase 1 provides a reproducible synthetic EEG pipeline; NeuroSync 2.0 Phase 2 is planned as seven development sessions spanning simulation, alignment, multimodal evaluation, adaptive assistance, and an interactive browser dashboard. Synthetic and simulated results are not human-subject evidence, clinical validation, or proof of real-robot safety.
 
 ## Windows Python environment
 
@@ -96,3 +96,28 @@ Install the optional ML extra and run the baseline example:
 The target is the generator's `HIGH_SHARED_COMPONENT` or `LOW_SHARED_COMPONENT` setting, not an annotated human collaboration state. Each seed produces a paired high/low example; both rows stay together in a `StratifiedGroupKFold` split. The workflow reports class counts, majority-class and standardized logistic regression baselines, accuracy, balanced accuracy, macro F1, confusion matrices, and a Wilson interval for the proportion of held-out seed groups where both paired rows are correct. Scaling is fit only within the training fold. The standalone baseline example reports the first of four deterministic folds; the integrated workflow uses all four folds for out-of-fold predictions. The interval treats seed groups as the sampling unit and does not support human-population inference. No performance on this synthetic fixture supports real-world or human-state validity.
 
 The end-to-end demonstration runs signal generation, MNE conversion, spectral features, coherence, plots, and grouped cross-validation. It saves a JSON report and three PNG figures under `outputs/synthetic_research_demo/`, which is ignored by Git; no generated signals or datasets are serialized.
+
+## Phase 2: simulated HRC research pipeline
+
+The optional `neurosync.simulation` package provides a headless PyBullet DIRECT shared-workspace handover with scripted kinematic human/robot proxies. Its behavioral telemetry includes trajectories, per-step speed, inter-agent distance, whole-run speed Pearson correlation, idle duration, and scripted synchronized/desynchronized task-state intervals. These events are simulation ground truth from the authored phase schedule, not observations of human behavior or inferred collaboration quality. NPZ export keeps arrays numeric and provenance/events as JSON; filenames must include `simulated` and generated files remain under ignored paths.
+
+Install the simulator extra and run its example with the project interpreter:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,sim]"
+.\.venv\Scripts\python.exe examples\run_simulated_handover.py
+```
+
+On Windows, the current [PyPI PyBullet 3.2.7 distribution](https://pypi.org/project/pybullet/#files) resolves to a source build and requires Microsoft C++ Build Tools. The checked project environment does not include that toolchain, so local actual-engine smoke tests are skipped until it is available; mocked-engine contract tests still run. WSL2 is not installed here. The planned Phase 2 CI job will use Python 3.11 on Linux, where PyPI provides a prebuilt PyBullet wheel, and run the real-engine simulation smoke test. The simulation and alignment code currently in the working tree is not a verified end-to-end engine run.
+
+## NeuroSync 2.0 interactive research dashboard
+
+An interactive browser-based Streamlit dashboard is a required Phase 2 deliverable for Session 6, with full-pipeline integration on Session 7. Planned views include experiment status and synthetic/simulation provenance; selectable simulation runs with both agent trajectories, distance, velocity, and scripted phase events; participant/channel-selectable EEG traces, spectral power, and coherence; group-aware EEG-only, behavior-only, and multimodal metrics/confusion matrices; and adaptive assistance decisions with their input features and task context. The dashboard is not implemented yet; the roadmap marks it as future work rather than a current capability.
+
+The intended Windows launch is through the project interpreter, after the dashboard and report schema land:
+
+```powershell
+.\.venv\Scripts\python.exe -m streamlit run dashboard\app.py
+```
+
+The final setup must document the real PyBullet runtime path. The current machine lacks MSVC C++ Build Tools and WSL is not installed, so native Windows simulation has not run. PyBullet's PyPI files page lists platform-specific wheels and the Windows install attempted here selected a source distribution that could not build without MSVC. WSL2/Linux is under consideration as the supported simulation environment; no WSL-based workflow has been verified on this machine yet.

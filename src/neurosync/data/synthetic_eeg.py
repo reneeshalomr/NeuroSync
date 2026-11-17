@@ -9,7 +9,7 @@ neural synchrony, interaction, or any psychological state.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -66,6 +66,9 @@ class SyntheticEEGData:
     random_seed: int
     generation_parameters: dict[str, Any]
     data_source: str = "synthetic"
+    sample_task_state: NDArray[np.str_] | None = None
+    task_events: tuple[dict[str, Any], ...] = ()
+    simulation_metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def n_samples(self) -> int:
@@ -294,6 +297,8 @@ def save_synthetic_eeg(data: SyntheticEEGData, path: str | Path) -> Path:
         "condition": data.condition.value,
         "random_seed": data.random_seed,
         "generation_parameters": data.generation_parameters,
+        "simulation_metadata": data.simulation_metadata,
+        "task_events": list(data.task_events),
         "signal_unit": "V",
         "signal_shape": list(data.participant_a.shape),
     }
@@ -309,6 +314,15 @@ def save_synthetic_eeg(data: SyntheticEEGData, path: str | Path) -> Path:
         condition=np.asarray(data.condition.value),
         random_seed=np.asarray(data.random_seed, dtype=np.int64),
         generation_parameters_json=np.asarray(json.dumps(metadata, sort_keys=True)),
+        sample_task_state=(
+            data.sample_task_state
+            if data.sample_task_state is not None
+            else np.asarray([], dtype=np.str_)
+        ),
+        task_events_json=np.asarray(json.dumps(data.task_events, sort_keys=True)),
+        simulation_metadata_json=np.asarray(
+            json.dumps(data.simulation_metadata, sort_keys=True)
+        ),
     )
     # np.savez appends .npz when callers omit it; return the actual filename.
     if not output_path.suffix:

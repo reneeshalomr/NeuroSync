@@ -68,5 +68,13 @@ def synthetic_participant_to_raw(
         "scipy_version": scipy.__version__,
         "generation_parameters": data.generation_parameters,
     }
+    if data.task_events:
+        provenance["simulation_metadata"] = data.simulation_metadata
+        provenance["task_events"] = list(data.task_events)
+        provenance["sample_task_state_count"] = int(
+            np.unique(data.sample_task_state).size
+            if data.sample_task_state is not None
+            else 0
+        )
     info["description"] = json.dumps(provenance, sort_keys=True)
     return mne.io.RawArray(signal.copy(), info, verbose="ERROR")

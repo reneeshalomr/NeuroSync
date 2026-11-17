@@ -81,3 +81,51 @@ Establish a reproducible, research-oriented foundation for studying whether phys
 ## Scope boundary
 
 This plan does not authorize collection or processing of real human recordings. Before introducing human data, establish consent, privacy, secure handling, de-identification, data governance, and any applicable institutional review requirements. Synthetic performance is not evidence of human, clinical, or deployment performance.
+
+## NeuroSync 2.0 — Seven-session Phase 2 delivery plan
+
+The completed seven-day Phase 1 work above is retained. Phase 2 continues on the existing `main` history as seven new development sessions. Each session must end with tested, reviewed, documented work and one meaningful commit pushed to `origin/main`; if an external dependency prevents a milestone from being completed or tested, record the blocker without marking that milestone complete.
+
+### Session 1 — Real PyBullet collaborative task simulation
+
+- Establish a documented, reproducible PyBullet runtime on the target Windows/Python 3.11.9 environment or a documented WSL2/Linux route.
+- Implement a headless shared-workspace task with two simulated agents, trajectories, distances, velocities, idle/hesitation telemetry, and scripted task-state events.
+- Preserve engine identity and simulation provenance in every result. Mocked tests may exercise the interface, but cannot count as evidence that a real PyBullet simulation ran.
+
+### Session 2 — Event-driven synthetic EEG and alignment
+
+- Map task event timestamps to MNE annotations, events, and epochs with explicit clock offsets and boundary checks.
+- Generate explicitly synthetic EEG whose injected shared component is controlled by scripted task phases. Preserve both simulation and signal-generation provenance.
+
+### Session 3 — Unified feature extraction
+
+- Extract EEG spectral/coherence and behavioral kinematic features from the same simulation runs.
+- Define feature rows, units, event windows, missing-data behavior, and session/seed identifiers; test deterministic alignment and feature contracts.
+
+### Session 4 — Comparative multimodal evaluation
+
+- Compare EEG-only, behavior-only, and multimodal baselines using strict `StratifiedGroupKFold` grouping by simulation seed/run.
+- Report balanced accuracy, macro F1, confusion matrices, class balance, uncertainty, and protocol limitations. Keep all preprocessing/model fitting within training folds.
+
+### Session 5 — Adaptive assistance policy
+
+- Implement an inspectable rule-based robot-assistance policy with logged inputs, decisions, and simulated behavior changes.
+- Evaluate policy behavior against explicit scripted task conditions and baseline policies; make no real-robot safety claim.
+
+### Session 6 — Interactive Streamlit research dashboard
+
+- Provide an interactive browser dashboard for experiment status/provenance, simulation runs and trajectories, EEG signals/spectral/coherence views, comparative model results, and assistance decisions.
+- Load reports from output directories, support run/channel/participant selection, and provide tests for data loading, missing reports, and dashboard calculations.
+
+### Session 7 — End-to-end integration, CI, and demonstration
+
+- Provide one master CLI that runs simulation through report generation, and a documented Windows launch path for the dashboard.
+- Add GitHub Actions for Python 3.11, pytest, Ruff lint/format, and a real-engine pipeline smoke test; publish reports/figures as workflow artifacts.
+- Verify reproducibility, provenance, output exclusions, and setup from a fresh documented environment.
+
+### Current Phase 2 status (2026-11-17)
+
+- Session 1 is in progress. Local Windows PyBullet installation attempted from the PyPI source distribution and stopped at the missing Microsoft Visual C++ 14.0 build-tool requirement. WSL is not installed on this machine. A real PyBullet run has not occurred; existing local simulation tests use a test double and one real-engine smoke test is skipped when PyBullet is unavailable.
+- Session 2's event-driven generator and MNE event alignment are implemented independently and their focused tests pass, but integration with an actual PyBullet-produced run remains unverified. Session 2 is not marked complete until that integration is exercised.
+- Work in progress includes `src/neurosync/simulation/`, `src/neurosync/alignment/`, `tests/test_simulation.py`, `tests/test_alignment.py`, `tests/test_event_driven_eeg.py`, and the related data/preprocessing extensions. Session 1 is not marked complete.
+- Next priority: use an installed real PyBullet runtime (native Windows with MSVC or a verified WSL2/Linux environment) to validate Session 1 and the Session 2 integration. Do not substitute the test double for this validation.
