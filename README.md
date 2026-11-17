@@ -108,7 +108,7 @@ Install the simulator extra and run its example with the project interpreter:
 .\.venv\Scripts\python.exe examples\run_simulated_handover.py
 ```
 
-On Windows, the current [PyPI PyBullet 3.2.7 distribution](https://pypi.org/project/pybullet/#files) resolves to a source build and requires Microsoft C++ Build Tools. The checked project environment does not include that toolchain, so local actual-engine smoke tests are skipped until it is available; mocked-engine contract tests still run. WSL2 is not installed here. The planned Phase 2 CI job will use Python 3.11 on Linux, where PyPI provides a prebuilt PyBullet wheel, and run the real-engine simulation smoke test. The simulation and alignment code currently in the working tree is not a verified end-to-end engine run.
+On Windows, the current [PyPI PyBullet 3.2.7 distribution](https://pypi.org/project/pybullet/#files) resolves to a source build and requires Microsoft C++ Build Tools. The checked project environment does not include that toolchain, so local actual-engine smoke tests are skipped until it is available; mocked-engine contract tests still run. WSL2 is not installed here. `.github/workflows/ci.yml` now configures Python 3.11 on Ubuntu, installs the declared `sim` extra, runs the full test and quality suite, and executes the simulation example against the actual PyBullet package. This provides a Linux runtime path, but does not count as real-engine verification until a GitHub Actions run succeeds. The simulation and alignment code remain unverified end to end on an actual-engine run until then.
 
 ## NeuroSync 2.0 interactive research dashboard
 

@@ -1,0 +1,28 @@
+name: NeuroSync CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install project with simulation and ML extras
+        run: python -m pip install -e ".[dev,ml,sim]"
+      - name: Test
+        run: python -m pytest
+      - name: Lint
+        run: python -m ruff check src tests examples
+      - name: Check formatting
+        run: python -m ruff format --check src tests examples
+      - name: Compile
+        run: python -m compileall -q src tests examples
+      - name: Run real PyBullet smoke example
+        run: python examples/run_simulated_handover.py

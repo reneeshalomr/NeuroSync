@@ -110,3 +110,10 @@ This log records dated project decisions, implementation work, checks, and limit
 - Focused checks passed: 5 alignment tests and 5 event-driven EEG tests. Simulation contracts passed 5 tests; the real PyBullet smoke test was skipped, and one optional-dependency test passed. Full project suite: 105 passed, 1 skipped. Six non-PyBullet examples ran. Compileall and Ruff check passed; all 38 Python files passed Ruff format check.
 - Dashboard requirements are now documented for Session 6 but no dashboard code exists yet. The master pipeline and CI are also future work.
 - Session 1 is not complete; Session 2's implementation is independently tested but its actual simulation integration remains unverified. Commit and push status for this delivery increment is reported in the session report.
+
+## 2026-11-17 — Linux real-engine CI route
+
+- Added `.github/workflows/ci.yml` on Ubuntu/Python 3.11 to install the project with `dev`, `ml`, and `sim` extras, run pytest, Ruff lint/format checks, compileall, and execute `examples/run_simulated_handover.py`. The final step requires the installed PyBullet engine and is intended to exercise the actual PyBullet DIRECT backend rather than a test double.
+- The Windows `.venv` remains Python 3.11.9 but has no MSVC build tools; WSL2 is also unavailable. No local real-engine test was possible. Session 1 remains incomplete until the remote workflow succeeds.
+- Validation on Windows Python 3.11.9: pytest reported 105 passed and 1 skipped (the conditional actual-PyBullet test). Ruff check passed, Ruff format check passed (38 files), and compileall passed. Pytest emitted a cache permission warning because this sandbox cannot write the repository `.pytest_cache`; it did not affect results.
+- The remote `origin/main` at the start of this change was `319d85a9406a7576737083a28f6658a305f6db9e`. `git ls-remote` failed to start a network thread, so remote CI and push status require verification.
