@@ -11,7 +11,7 @@ import json
 import math
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
 import numpy as np
 import scipy
@@ -97,6 +97,15 @@ class CollaborativeTaskResult:
     velocity_correlation: float
     idle_duration_seconds: dict[str, float]
     metadata: dict[str, Any]
+    assistance_decisions: tuple[dict[str, Any], ...] = ()
+
+
+class AssistancePolicy(Protocol):
+    """Minimal controller policy contract consumed by the simulation loop."""
+
+    policy_name: str
+
+    def decide(self, observation: dict[str, Any]) -> dict[str, Any]: ...
 
 
 def _trajectory(
@@ -130,6 +139,8 @@ def _idle_duration(speed: FloatArray, threshold: float, dt: float) -> float:
 
 def run_collaborative_task(
     config: CollaborativeTaskConfig = CollaborativeTaskConfig(),
+    *,
+    assistance_policy: AssistancePolicy | None = None,
 ) -> CollaborativeTaskResult:
     """Run a headless PyBullet shared-workspace handover with scripted agents.
 
@@ -176,7 +187,7 @@ def run_collaborative_task(
             bullet.GEOM_BOX, halfExtents=[1.0, 0.6, 0.025], physicsClientId=client_id
         )
         bullet.createMultiBody(
-            baseMass=0.25,
+            baseMass=0,
             baseCollisionShapeIndex=plane_shape,
             basePosition=[0.0, 0.0, 0.55],
             physicsClientId=client_id,
@@ -194,7 +205,7 @@ def run_collaborative_task(
             physicsClientId=client_id,
         )
         body_b = bullet.createMultiBody(
-            baseMass=0,
+            baseMass=0.25,
             baseCollisionShapeIndex=sphere_shape_b,
             basePosition=[0.65, 0.0, 0.72],
             physicsClientId=client_id,
@@ -204,6 +215,8 @@ def run_collaborative_task(
         positions_a[0] = [-0.65, 0.0, 0.72]
         positions_b[0] = [0.65, 0.0, 0.72]
         kp, kd, max_force_n = 36.0, 12.0, 8.0
+        human_idle_duration = 0.0
+        assistance_decisions: list[dict[str, Any]] = []
         for sample_index, time_s in enumerate(times[1:], start=1):
             phase_index = min(
                 int(np.searchsorted(phase_ends, time_s, side="right")),
@@ -214,28 +227,100 @@ def run_collaborative_task(
             local_progress = float(
                 np.clip((time_s - event.start_time_seconds) / phase_duration, 0.0, 1.0)
             )
+            progress_a = np.array([local_progress])
+            current_a, _ = bullet.getBasePositionAndOrientation(
+                body_a, physicsClientId=client_id
+            )
+            current_b, _ = bullet.getBasePositionAndOrientation(
+                body_b, physicsClientId=client_id
+            )
+            velocity_a_current, _ = bullet.getBaseVelocity(
+                body_a, physicsClientId=client_id
+            )
+            velocity_b_current, _ = bullet.getBaseVelocity(
+                body_b, physicsClientId=client_id
+            )
+            human_speed = float(np.linalg.norm(velocity_a_current))
+            robot_speed = float(np.linalg.norm(velocity_b_current))
+            human_idle_duration = (
+                human_idle_duration + dt
+                if human_speed < config.idle_speed_threshold_m_s
+                else 0.0
+            )
+            distance_now = float(
+                np.linalg.norm(np.asarray(current_a) - np.asarray(current_b))
+            )
+            delay = config.desynchronization_delay_fraction
+            robot_kp, robot_kd, robot_max_force = kp, kd, max_force_n
+            if assistance_policy is not None:
+                observation = {
+                    "time_seconds": float(time_s),
+                    "task_state": state,
+                    "human_speed_m_s": human_speed,
+                    "robot_speed_m_s": robot_speed,
+                    "inter_agent_distance_m": distance_now,
+                    "human_idle_duration_seconds": human_idle_duration,
+                }
+                action = assistance_policy.decide(observation)
+                try:
+                    delay = float(action["robot_target_delay_fraction"])
+                    robot_kp = float(action["robot_kp_per_s2"])
+                    robot_kd = float(action["robot_kd_per_s"])
+                    robot_max_force = float(action["robot_max_force_n"])
+                    assistance_level = str(action["assistance_level"])
+                    reason = str(action["reason"])
+                    policy_name = str(action["policy_name"])
+                except (KeyError, TypeError, ValueError) as exc:
+                    raise ValueError(
+                        "assistance policy returned an invalid action"
+                    ) from exc
+                if (
+                    not all(
+                        math.isfinite(value)
+                        for value in (delay, robot_kp, robot_kd, robot_max_force)
+                    )
+                    or not 0 <= delay < 1
+                    or robot_kp < 0
+                    or robot_kd < 0
+                    or robot_max_force <= 0
+                ):
+                    raise ValueError("assistance action controller values are invalid")
+                assistance_decisions.append(
+                    {
+                        **observation,
+                        "policy_name": policy_name,
+                        "assistance_level": assistance_level,
+                        "reason": reason,
+                        "robot_target_delay_fraction": delay,
+                        "robot_kp_per_s2": robot_kp,
+                        "robot_kd_per_s": robot_kd,
+                        "robot_max_force_n": robot_max_force,
+                    }
+                )
             if state == "desynchronized":
-                progress_a = np.array([local_progress])
-                delay = config.desynchronization_delay_fraction
                 progress_b = np.array(
                     [np.clip((local_progress - delay) / (1.0 - delay), 0.0, 1.0)]
                 )
             else:
-                progress_a = np.array([local_progress])
                 progress_b = np.array([local_progress])
             pos_a, pos_b = _trajectory(phase_name, progress_a, progress_b)
             pos_a, pos_b = pos_a[0], pos_b[0]
-            for body, target in ((body_a, pos_a), (body_b, pos_b)):
+            controller_settings = (
+                (body_a, pos_a, kp, kd, max_force_n),
+                (body_b, pos_b, robot_kp, robot_kd, robot_max_force),
+            )
+            for body, target, body_kp, body_kd, body_max_force in controller_settings:
                 current, _ = bullet.getBasePositionAndOrientation(
                     body, physicsClientId=client_id
                 )
                 velocity, _ = bullet.getBaseVelocity(body, physicsClientId=client_id)
                 force = 0.25 * (
-                    kp * (target - np.asarray(current)) - kd * np.asarray(velocity)
+                    body_kp * (target - np.asarray(current))
+                    - body_kd * np.asarray(velocity)
                 )
                 norm = float(np.linalg.norm(force))
-                if norm > max_force_n:
-                    force *= max_force_n / norm
+                if norm > body_max_force:
+                    force *= body_max_force / norm
                 bullet.applyExternalForce(
                     body,
                     -1,
@@ -302,6 +387,12 @@ def run_collaborative_task(
                 "maximum_force_n": max_force_n,
                 "body_mass_kg": 0.25,
             },
+            "assistance_policy": {
+                "enabled": assistance_policy is not None,
+                "name": getattr(assistance_policy, "policy_name", None),
+                "decision_count": len(assistance_decisions),
+                "decision_source": "per-step simulated kinematics and scripted task phase",
+            },
             "sampling_frequency_hz": config.sampling_frequency_hz,
             "time_step_seconds": dt,
             "duration_seconds": duration,
@@ -319,6 +410,7 @@ def run_collaborative_task(
                 "This environment is a software fixture, not a safety or deployment evaluation.",
             ],
         },
+        assistance_decisions=tuple(assistance_decisions),
     )
 
 
@@ -331,6 +423,7 @@ def save_simulation_result(result: CollaborativeTaskResult, path: str | Path) ->
         raise ValueError("simulation result path must have an .npz extension")
     output.parent.mkdir(parents=True, exist_ok=True)
     event_json = json.dumps([asdict(event) for event in result.events], sort_keys=True)
+    assistance_json = json.dumps(result.assistance_decisions, sort_keys=True)
     np.savez_compressed(
         output,
         time_seconds=result.time_seconds,
@@ -342,6 +435,7 @@ def save_simulation_result(result: CollaborativeTaskResult, path: str | Path) ->
         agent_b_speed_m_s=result.agent_b_speed_m_s,
         inter_agent_distance_m=result.inter_agent_distance_m,
         events_json=np.asarray(event_json),
+        assistance_decisions_json=np.asarray(assistance_json),
         velocity_correlation=np.asarray(result.velocity_correlation),
         idle_duration_json=np.asarray(
             json.dumps(result.idle_duration_seconds, sort_keys=True)

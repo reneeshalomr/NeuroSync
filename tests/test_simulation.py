@@ -13,6 +13,7 @@ from neurosync.simulation import (
     save_simulation_result,
 )
 from neurosync.simulation import task as simulation_task
+from neurosync.simulation.assistance import RuleBasedAssistancePolicy
 
 
 class _FakeBullet:
@@ -128,6 +129,30 @@ def test_simulation_repeats_and_phase_control_changes_telemetry(fake_bullet) -> 
     ]
 
 
+def test_assistance_policy_inputs_and_decisions_are_retained(fake_bullet) -> None:
+    result = run_collaborative_task(
+        CollaborativeTaskConfig(sampling_frequency_hz=10, seed=15),
+        assistance_policy=RuleBasedAssistancePolicy(),
+    )
+    assert result.metadata["assistance_policy"]["enabled"] is True
+    assert result.metadata["assistance_policy"]["decision_count"] == 60
+    assert len(result.assistance_decisions) == 60
+    first = result.assistance_decisions[0]
+    assert {
+        "task_state",
+        "human_speed_m_s",
+        "robot_speed_m_s",
+        "inter_agent_distance_m",
+        "reason",
+        "robot_kp_per_s2",
+        "assistance_level",
+    } <= first.keys()
+    assert any(
+        decision["assistance_level"] == "elevated"
+        for decision in result.assistance_decisions
+    )
+
+
 def test_npz_roundtrip_uses_pickle_free_metadata(fake_bullet, tmp_path) -> None:
     result = run_collaborative_task(CollaborativeTaskConfig(sampling_frequency_hz=10))
     target = save_simulation_result(result, tmp_path / "handover_simulated_run.npz")
@@ -137,6 +162,7 @@ def test_npz_roundtrip_uses_pickle_free_metadata(fake_bullet, tmp_path) -> None:
         metadata = json.loads(str(archive["metadata_json"]))
         assert len(events) == len(result.events)
         assert metadata["data_source"] == "simulated"
+        assert json.loads(str(archive["assistance_decisions_json"])) == []
 
 
 def test_rejects_invalid_simulation_configuration() -> None:
@@ -162,6 +188,9 @@ def test_actual_pybullet_smoke_when_optional_dependency_is_installed() -> None:
     assert result.time_seconds.size == 61
     assert np.any(
         np.linalg.norm(np.diff(result.agent_a_position_m, axis=0), axis=1) > 0
+    )
+    assert np.any(
+        np.linalg.norm(np.diff(result.agent_b_position_m, axis=0), axis=1) > 0
     )
     assert (
         result.metadata["controller"]["type"]

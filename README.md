@@ -99,7 +99,7 @@ The end-to-end demonstration runs signal generation, MNE conversion, spectral fe
 
 ## Phase 2: simulated HRC research pipeline
 
-The optional `neurosync.simulation` package provides a headless PyBullet DIRECT shared-workspace handover with dynamic sphere proxies driven by a bounded PD force controller toward scripted reference paths. Sampled trajectories and velocities are read from the physics engine. Behavioral telemetry includes per-step speed, inter-agent distance, whole-run speed Pearson correlation, idle duration, and scripted synchronized/desynchronized task-state intervals. These events are simulation ground truth from the authored phase schedule, not observations of human behavior or inferred collaboration quality. This is a simple controlled physics task, not a robot arm, human motion model, or deployment evaluation. NPZ export keeps arrays numeric and provenance/events as JSON; filenames must include `simulated` and generated files remain under ignored paths.
+The optional `neurosync.simulation` package provides a headless PyBullet DIRECT shared-workspace handover with two dynamic sphere proxies driven by bounded PD force controllers toward scripted reference paths. Sampled trajectories and velocities are read from the physics engine. Behavioral telemetry includes per-step speed, inter-agent distance, whole-run speed Pearson correlation, idle duration, and scripted synchronized/desynchronized task-state intervals. These events are simulation ground truth from the authored phase schedule, not observations of human behavior or inferred collaboration quality. This is a simple controlled physics task, not a robot arm, human motion model, or deployment evaluation. NPZ export keeps arrays numeric and provenance/events as JSON; filenames must include `simulated` and generated files remain under ignored paths.
 
 Install the simulator extra and run its example with the project interpreter:
 
@@ -133,6 +133,16 @@ The example writes a synthetic/simulated labeled CSV and provenance JSON under i
 ```
 
 The example writes a JSON metrics report and labeled comparison figure under ignored `outputs/multimodal_evaluation/`. The figure includes modality metrics and out-of-fold confusion matrices, with the synthetic target provenance in its title.
+
+### Adaptive assistance demonstration
+
+`RuleBasedAssistancePolicy` increases the robot-proxy controller effort and reduces its scripted target delay when the task's ground-truth phase is desynchronized or the human proxy crosses a configurable hesitation-duration rule. Every decision records simulation time, input kinematics/state, reason, target-delay setting, gains, force limit, and assistance level. `evaluate_rule_based_assistance` runs matched unassisted and assisted simulations and reports descriptive distances and robot motion for both conditions. The policy deliberately reads scripted state labels for a transparent control demonstration; it is not an inference policy, safety controller, validated human-assistance method, or evidence that assistance improved human outcomes.
+
+```powershell
+.\.venv\Scripts\python.exe examples\evaluate_adaptive_assistance.py
+```
+
+The example saves both simulation telemetry files, a per-step policy decision CSV, a JSON comparison report, and a provenance-labeled figure under ignored `outputs/adaptive_assistance/`.
 
 ## NeuroSync 2.0 interactive research dashboard
 

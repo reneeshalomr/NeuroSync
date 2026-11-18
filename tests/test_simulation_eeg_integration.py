@@ -40,6 +40,12 @@ def test_real_pybullet_events_generate_and_align_synthetic_eeg() -> None:
     epoch_states = list(epochs.metadata["task_state"])
 
     assert simulation.metadata["engine"] == "PyBullet DIRECT"
+    assert np.any(
+        np.linalg.norm(np.diff(simulation.agent_a_position_m, axis=0), axis=1) > 0
+    )
+    assert np.any(
+        np.linalg.norm(np.diff(simulation.agent_b_position_m, axis=0), axis=1) > 0
+    )
     assert eeg.data_source == "synthetic"
     assert eeg.simulation_metadata["data_source"] == "simulated"
     assert len(aligned.annotations) == len(simulation.events)
