@@ -146,12 +146,18 @@ The example saves both simulation telemetry files, a per-step policy decision CS
 
 ## NeuroSync 2.0 interactive research dashboard
 
-An interactive browser-based Streamlit dashboard is a required Phase 2 deliverable for Session 6, with full-pipeline integration on Session 7. Planned views include experiment status and synthetic/simulation provenance; selectable simulation runs with both agent trajectories, distance, velocity, and scripted phase events; participant/channel-selectable EEG traces, spectral power, and coherence; group-aware EEG-only, behavior-only, and multimodal metrics/confusion matrices; and adaptive assistance decisions with their input features and task context. The dashboard is not implemented yet; the roadmap marks it as future work rather than a current capability.
+The Streamlit dashboard is implemented in `dashboard/app.py`; reusable manifest loading and validated display calculations live in `neurosync.dashboard`. Views cover run status and provenance, selectable PyBullet runs and task events, both-agent trajectories and kinematics, participant/channel-selectable synthetic EEG, event-level delta through gamma power and descriptive coherence, group-aware model metrics and confusion matrices, and logged assistance decisions with policy inputs and reasons. Output paths are selected in the sidebar; no Python source edits are needed to switch experiment bundles.
 
-The intended Windows launch is through the project interpreter, after the dashboard and report schema land:
+Install the dashboard, ML, and real simulation dependencies, then build its reproducible example data from twelve actual PyBullet runs and launch the browser application:
 
 ```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,ml,sim,dashboard]"
+.\.venv\Scripts\python.exe examples\build_dashboard_example.py
 .\.venv\Scripts\python.exe -m streamlit run dashboard\app.py
 ```
 
-The final setup must document the real PyBullet runtime path. The current machine lacks MSVC C++ Build Tools and WSL is not installed, so native Windows simulation has not run. PyBullet's PyPI files page lists platform-specific wheels and the Windows install attempted here selected a source distribution that could not build without MSVC. WSL2/Linux is under consideration as the supported simulation environment; no WSL-based workflow has been verified on this machine yet.
+The example bundle is written under ignored `outputs/dashboard_example/`. The app opens `outputs/full_run/` when a completed pipeline bundle exists, otherwise it defaults to `outputs/dashboard_example/`. All signal and behavior files are generated locally. The loader uses `allow_pickle=False`, checks provenance and array shapes, and rejects artifact paths outside the selected output directory. Missing optional reports are shown as unavailable, while missing required run files produce an actionable error.
+
+Dashboard plots label EEG as synthetic, behavior as simulated, task labels as scripted ground truth, EEG power in V², trajectories in meters, and speeds in m/s. Coherence is described only as a descriptive association statistic. Model scores describe the authored dataset and do not establish human prediction validity; adaptive-policy metrics are not evidence of human benefit or physical robot safety.
+
+Real PyBullet was verified in GitHub Actions on Ubuntu/Python 3.11. The current Windows machine lacks MSVC C++ Build Tools and WSL is not installed, so native Windows PyBullet execution is not verified. The documented supported simulation path is the Linux CI/runtime with the declared `sim` extra; dashboard viewing and non-PyBullet synthetic Phase 1 tests use the Windows project interpreter.
