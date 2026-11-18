@@ -19,11 +19,11 @@ jobs:
       - name: Test
         run: python -m pytest
       - name: Lint
-        run: python -m ruff check src tests examples
+        run: python -m ruff check src tests examples dashboard
       - name: Check formatting
-        run: python -m ruff format --check src tests examples
+        run: python -m ruff format --check src tests examples dashboard
       - name: Compile
-        run: python -m compileall -q src tests examples
+        run: python -m compileall -q src tests examples dashboard
       - name: Run real PyBullet smoke example
         run: python examples/run_simulated_handover.py
       - name: Run real simulation to unified feature example
@@ -32,8 +32,8 @@ jobs:
         run: python examples/evaluate_multimodal_models.py
       - name: Run PyBullet adaptive assistance example
         run: python examples/evaluate_adaptive_assistance.py
-      - name: Build reproducible dashboard example data
-        run: python examples/build_dashboard_example.py
+      - name: Run complete PyBullet-to-dashboard pipeline
+        run: python examples/run_full_automated_pipeline.py --run-count 4 --seed-start 9300 --output-dir outputs/full_run
       - name: Smoke test interactive dashboard
         run: |
           streamlit run dashboard/app.py --server.headless true --server.port 8501 > dashboard.log 2>&1 &
@@ -48,3 +48,13 @@ jobs:
           cat dashboard.log
           kill "$dashboard_pid" || true
           exit 1
+      - name: Upload full-run reports and figures
+        uses: actions/upload-artifact@v4
+        with:
+          name: neurosync-synthetic-simulation-reports
+          path: |
+            outputs/full_run/*report*.json
+            outputs/full_run/dashboard_manifest.json
+            outputs/full_run/figures/*.png
+          if-no-files-found: error
+          retention-days: 14

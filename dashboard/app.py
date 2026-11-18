@@ -80,7 +80,7 @@ with tabs[0]:
     )
 
 with tabs[1]:
-    st.subheader("PyBullet proxy simulation")
+    st.subheader("Simulated proxy task")
     sim = run.simulation
     positions = go.Figure()
     positions.add_trace(

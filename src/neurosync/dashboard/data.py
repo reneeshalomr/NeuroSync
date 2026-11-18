@@ -138,10 +138,11 @@ def load_dashboard_data(output_dir: str | Path) -> DashboardData:
         )
         if (
             sim_metadata.get("data_source") != "simulated"
-            or sim_metadata.get("engine") != "PyBullet DIRECT"
+            or not isinstance(sim_metadata.get("engine"), str)
+            or not sim_metadata.get("engine")
         ):
             raise DashboardDataError(
-                "Simulation artifact must identify real PyBullet simulation provenance"
+                "Simulation artifact must identify simulated provenance and its engine"
             )
 
         eeg_path = _resolve_file(root, spec.get("eeg_file"), context="synthetic EEG")

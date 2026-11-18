@@ -28,7 +28,11 @@ def _write_bundle(root, *, model_report=True):
             "end_time_seconds": 0.2,
         }
     ]
-    sim_metadata = {"data_source": "simulated", "engine": "PyBullet DIRECT", "seed": 19}
+    sim_metadata = {
+        "data_source": "simulated",
+        "engine": "test fixture; no physics engine execution",
+        "seed": 19,
+    }
     np.savez_compressed(
         root / "run_simulated.npz",
         time_seconds=times,
@@ -106,7 +110,7 @@ def test_loads_pickle_free_dashboard_bundle_and_model_report(tmp_path) -> None:
     assert len(data.runs) == 1
     assert data.runs[0].run_id == "test-seed-19"
     assert data.runs[0].eeg_metadata["data_source"] == "synthetic"
-    assert data.runs[0].simulation_metadata["engine"] == "PyBullet DIRECT"
+    assert data.runs[0].simulation_metadata["engine"].startswith("test fixture")
     assert data.model_report is not None
     assert data.runs[0].eeg["participant_a"].shape == (1, 3)
 

@@ -1,6 +1,6 @@
 # NeuroSync
 
-NeuroSync is a research-oriented project exploring whether physiological and behavioral signals can help estimate human-robot collaboration states. Phase 1 provides a reproducible synthetic EEG pipeline; NeuroSync 2.0 Phase 2 is planned as seven development sessions spanning simulation, alignment, multimodal evaluation, adaptive assistance, and an interactive browser dashboard. Synthetic and simulated results are not human-subject evidence, clinical validation, or proof of real-robot safety.
+NeuroSync is a research-oriented project exploring whether physiological and behavioral signals can help estimate human-robot collaboration states. Phase 1 provides a reproducible synthetic EEG pipeline; NeuroSync 2.0 adds PyBullet simulation, event alignment, multimodal evaluation, adaptive assistance, an interactive browser dashboard, and an end-to-end CLI. Synthetic and simulated results are not human-subject evidence, clinical validation, or proof of real-robot safety.
 
 ## Windows Python environment
 
@@ -148,11 +148,28 @@ The example saves both simulation telemetry files, a per-step policy decision CS
 
 The Streamlit dashboard is implemented in `dashboard/app.py`; reusable manifest loading and validated display calculations live in `neurosync.dashboard`. Views cover run status and provenance, selectable PyBullet runs and task events, both-agent trajectories and kinematics, participant/channel-selectable synthetic EEG, event-level delta through gamma power and descriptive coherence, group-aware model metrics and confusion matrices, and logged assistance decisions with policy inputs and reasons. Output paths are selected in the sidebar; no Python source edits are needed to switch experiment bundles.
 
-Install the dashboard, ML, and real simulation dependencies, then build its reproducible example data from twelve actual PyBullet runs and launch the browser application:
+### Complete end-to-end experiment
+
+The master CLI runs real PyBullet tasks, aligns scripted events into MNE Raw/epochs, preprocesses both synthetic EEG channels with documented offline filters, extracts unified EEG/behavior features, evaluates EEG-only/behavior-only/fused models with grouped cross-validation, evaluates the assistance rule, and writes a dashboard manifest, reports, and figures under ignored `outputs/full_run/`.
+
+On the documented Linux/Python 3.11 simulation environment:
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev,ml,sim,dashboard]"
+python examples/run_full_automated_pipeline.py --run-count 12 --seed-start 9100
+streamlit run dashboard/app.py
+```
+
+Use `--run-count` at least as large as `--cv-splits` (four by default); each independent simulation seed is kept in one `StratifiedGroupKFold` group. The first run includes the paired rule-based assistance demonstration. The JSON report records settings, epoch counts, actual model metrics, provenance, and limitations. Output data and figures are reproducible from the declared seeds but are not committed.
+
+The separate `examples/build_dashboard_example.py` command creates a fixed twelve-run example bundle in `outputs/dashboard_example/` for dashboard exploration. To open that bundle, enter its directory in the app sidebar.
+
+Native Windows PyBullet installation currently builds from source and requires Microsoft C++ Build Tools, unavailable in the verified Windows environment. The end-to-end run is therefore documented for Linux/Python 3.11 and verified by CI. On Windows, launch the dashboard using the project interpreter after generating/copying a manifest-backed output bundle:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -e ".[dev,ml,sim,dashboard]"
-.\.venv\Scripts\python.exe examples\build_dashboard_example.py
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,dashboard]"
 .\.venv\Scripts\python.exe -m streamlit run dashboard\app.py
 ```
 
