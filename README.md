@@ -150,7 +150,7 @@ The Streamlit dashboard is implemented in `dashboard/app.py`; reusable manifest 
 
 ### Complete end-to-end experiment
 
-The master CLI runs real PyBullet tasks, aligns scripted events into MNE Raw/epochs, preprocesses both synthetic EEG channels with documented offline filters, extracts unified EEG/behavior features, evaluates EEG-only/behavior-only/fused models with grouped cross-validation, evaluates the assistance rule, and writes a dashboard manifest, reports, and figures under ignored `outputs/full_run/`.
+The master CLI runs real PyBullet tasks, aligns scripted events into MNE Raw/epochs, preprocesses both synthetic EEG channels with documented offline filters, extracts unified EEG/behavior features, evaluates EEG-only/behavior/fused models with grouped cross-validation, evaluates the assistance rule, and writes a dashboard manifest, reports, and figures under ignored `outputs/full_run/`. GitHub Actions verifies this complete path on Linux and publishes report, manifest, and figure artifacts for 14 days [in the successful full-pipeline run](https://github.com/reneeshalomr/NeuroSync/actions/runs/44370285149); generated NPZ datasets are not uploaded.
 
 On the documented Linux/Python 3.11 simulation environment:
 
