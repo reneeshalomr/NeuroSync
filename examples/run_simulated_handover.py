@@ -17,7 +17,7 @@ def main() -> None:
         "data/generated/handover_simulated_seed2026.npz",
     )
     print(
-        "Simulation only; the kinematic proxies are not human recordings or a validated robot."
+        "Simulation only; dynamic proxies are not human recordings or a validated robot."
     )
     print(f"Saved: {path}; samples: {result.time_seconds.size}")
     print(f"Scripted task-state events: {len(result.events)}")
