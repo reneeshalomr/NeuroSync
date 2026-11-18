@@ -114,6 +114,16 @@ On Windows, the current [PyPI PyBullet 3.2.7 distribution](https://pypi.org/proj
 
 `generate_event_modulated_synthetic_eeg` takes a simulated task result and maps its scripted synchronized/desynchronized intervals to sample-level states. It modulates the injected shared waveform by documented software scales (1.0 and 0.05); these numbers construct a test signal and are not estimates of a neural mechanism. `annotate_raw_with_task_events` and `epoch_task_events` map simulation seconds to MNE annotations, onset events, and task-state metadata. The default assumes a common clock; callers can provide an explicit offset, and out-of-recording intervals/windows are rejected. Tests include a Linux CI integration case that runs real PyBullet, creates synthetic EEG from those timestamps, and constructs MNE annotations/epochs. This is a reproducible software integration, not evidence that real EEG contains task-dependent synchrony.
 
+### Unified EEG and behavior features
+
+`neurosync.features.extract_unified_features` produces one row per half-open scripted task event from an event-driven synthetic EEG record and matching simulated task telemetry. Rows include participant-wise band power/entropy summaries, descriptive matched-channel coherence, agent speeds/path lengths, distance summaries, event labels/source, seeds, and session ID. EEG samples use volts; behavior uses meters and meters/second. The extractor validates sample rates, temporal coverage, telemetry shapes, finite values, event order, and window length. Event labels are authored simulation ground truth. For later model evaluation, all rows from a simulation seed/run must remain in the same group. Run a real PyBullet example with:
+
+```powershell
+.\.venv\Scripts\python.exe examples\extract_simulation_features.py
+```
+
+The example writes a synthetic/simulated labeled CSV and provenance JSON under ignored `outputs/simulation_features/`; it does not create repository-tracked data.
+
 ## NeuroSync 2.0 interactive research dashboard
 
 An interactive browser-based Streamlit dashboard is a required Phase 2 deliverable for Session 6, with full-pipeline integration on Session 7. Planned views include experiment status and synthetic/simulation provenance; selectable simulation runs with both agent trajectories, distance, velocity, and scripted phase events; participant/channel-selectable EEG traces, spectral power, and coherence; group-aware EEG-only, behavior-only, and multimodal metrics/confusion matrices; and adaptive assistance decisions with their input features and task context. The dashboard is not implemented yet; the roadmap marks it as future work rather than a current capability.

@@ -9,6 +9,7 @@ import pytest
 
 from neurosync.alignment import annotate_raw_with_task_events, epoch_task_events
 from neurosync.data.event_driven import generate_event_modulated_synthetic_eeg
+from neurosync.features import extract_unified_features
 from neurosync.preprocessing.raw import synthetic_participant_to_raw
 from neurosync.simulation import CollaborativeTaskConfig, run_collaborative_task
 from neurosync.simulation import task as simulation_task
@@ -32,6 +33,9 @@ def test_real_pybullet_events_generate_and_align_synthetic_eeg() -> None:
 
     aligned = annotate_raw_with_task_events(raw, simulation)
     epochs = epoch_task_events(raw, simulation, tmin=0.0, tmax=0.25)
+    unified = extract_unified_features(
+        eeg, simulation, session_id="integration-seed-2026"
+    )
     raw_metadata = json.loads(aligned.info["description"])
     epoch_states = list(epochs.metadata["task_state"])
 
@@ -46,3 +50,7 @@ def test_real_pybullet_events_generate_and_align_synthetic_eeg() -> None:
     assert len(epochs) == len(simulation.events)
     assert epoch_states == [event.task_state for event in simulation.events]
     assert raw_metadata["task_event_alignment"]["simulation_seed"] == 2026
+    assert len(unified.rows) == len(simulation.events)
+    assert set(unified.rows["data_source_eeg"]) == {"synthetic"}
+    assert set(unified.rows["data_source_behavior"]) == {"simulated"}
+    assert unified.rows["session_id"].eq("integration-seed-2026").all()

@@ -26,3 +26,5 @@ jobs:
         run: python -m compileall -q src tests examples
       - name: Run real PyBullet smoke example
         run: python examples/run_simulated_handover.py
+      - name: Run real simulation to unified feature example
+        run: python examples/extract_simulation_features.py
