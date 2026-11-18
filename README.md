@@ -124,6 +124,16 @@ On Windows, the current [PyPI PyBullet 3.2.7 distribution](https://pypi.org/proj
 
 The example writes a synthetic/simulated labeled CSV and provenance JSON under ignored `outputs/simulation_features/`; it does not create repository-tracked data.
 
+### Comparative group-aware models
+
+`neurosync.modeling.evaluate_multimodal_comparison` evaluates EEG-only, behavior-only, and combined logistic regression models with the same `StratifiedGroupKFold` splits. Every row from the same session/seed stays in one held-out fold. Scaling is fit inside each training-fold pipeline. Reports include out-of-fold accuracy, balanced accuracy, macro F1, confusion matrices, class balance, and fold variability. The target is the scripted simulation task-state label; a relationship between the synthetic EEG construction and that label is intentional and does not imply real predictive validity. To run a reproducible real-PyBullet comparison across 12 independent simulation seeds:
+
+```powershell
+.\.venv\Scripts\python.exe examples\evaluate_multimodal_models.py
+```
+
+The example writes a JSON metrics report and labeled comparison figure under ignored `outputs/multimodal_evaluation/`. The figure includes modality metrics and out-of-fold confusion matrices, with the synthetic target provenance in its title.
+
 ## NeuroSync 2.0 interactive research dashboard
 
 An interactive browser-based Streamlit dashboard is a required Phase 2 deliverable for Session 6, with full-pipeline integration on Session 7. Planned views include experiment status and synthetic/simulation provenance; selectable simulation runs with both agent trajectories, distance, velocity, and scripted phase events; participant/channel-selectable EEG traces, spectral power, and coherence; group-aware EEG-only, behavior-only, and multimodal metrics/confusion matrices; and adaptive assistance decisions with their input features and task context. The dashboard is not implemented yet; the roadmap marks it as future work rather than a current capability.

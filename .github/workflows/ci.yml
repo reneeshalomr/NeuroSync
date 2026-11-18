@@ -28,3 +28,5 @@ jobs:
         run: python examples/run_simulated_handover.py
       - name: Run real simulation to unified feature example
         run: python examples/extract_simulation_features.py
+      - name: Run grouped EEG/behavior model comparison
+        run: python examples/evaluate_multimodal_models.py

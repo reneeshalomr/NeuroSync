@@ -123,10 +123,11 @@ The completed seven-day Phase 1 work above is retained. Phase 2 continues on the
 - Add GitHub Actions for Python 3.11, pytest, Ruff lint/format, and a real-engine pipeline smoke test; publish reports/figures as workflow artifacts.
 - Verify reproducibility, provenance, output exclusions, and setup from a fresh documented environment.
 
-### Current Phase 2 status (2026-11-17)
+### Current Phase 2 status (2026-11-18)
 
 - Session 1 is complete. The shared-workspace task now uses dynamic proxy spheres and bounded PD control in the actual PyBullet DIRECT engine. GitHub Actions run `44161231064` passed the actual-engine movement assertion and simulation example on Linux. Local Windows PyBullet installation remains unavailable because the source build requires Microsoft C++ Build Tools; WSL2 is not installed.
 - Session 2 is complete. GitHub Actions run `44341146944` passed the actual PyBullet → event-driven synthetic EEG → MNE Raw annotations/epochs integration test. This confirms software timestamp mapping only, not a human physiological effect.
 - Added `.github/workflows/ci.yml` to install PyBullet and run the simulation smoke example on Ubuntu/Python 3.11. Run `44161231064` succeeded after the dynamic-body update, including tests, quality checks, example execution, and an assertion that PyBullet-produced positions move. Native Windows remains unverified. The simulation is not a robot arm or human biomechanics model.
-- Session 3 adds `src/neurosync/features/unified.py` to create event-level EEG spectra/coherence and behavior features with seed/session identifiers. Local full suite and quality checks pass; the updated CI run and Linux real-engine feature example await this commit's workflow.
-- Work in progress includes unified features and Session 4 group-aware comparative evaluation. No real-human validity is inferred from synthetic labels or signals.
+- Session 3 is complete. Unified event-level EEG spectral/coherence and behavioral kinematic features are implemented and tested. GitHub Actions run `44343178907` passed the real PyBullet feature example and test suite on Linux.
+- Session 4 adds EEG-only, behavior-only, and multimodal logistic regression models on shared `StratifiedGroupKFold` splits, out-of-fold reports, and confusion-matrix/metric figures. Local focused checks pass; full checks and the real-engine multi-run example await the current workflow.
+- Next milestones: evaluate the adaptive assistance policy (Session 5), build the interactive Streamlit dashboard (Session 6), then integrate the complete workflow, CI artifacts, and final demo (Session 7). Every model target remains an authored simulation label.
